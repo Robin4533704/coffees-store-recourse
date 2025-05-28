@@ -6,43 +6,60 @@ const SignUp = () => {
  const {createUser} = useContext(AuthContext);
   console.log(createUser);
 
-
- const handleSingup = e =>{
+const handleSingup = (e) => {
   e.preventDefault();
- const form = e.target;
+  const form = e.target;
   const formData = new FormData(form);
- const {email, password, ...userProfile}= Object.fromEntries(formData.entries())
-console.log(email, password, userProfile)
+  const { email, password, ...restFormData } = Object.fromEntries(formData.entries());
 
+  createUser(email, password)
+    .then((result) => {
+      console.log(result.user);
 
-createUser(email, password)
-  .then(result => {
-    console.log(result.user);
-  fetch('http://localhost:3000/users', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json'
-      },
-      body: JSON.stringify(userProfile)
-    });
-  })
-  .then(res => res.json())
-  .then(data => {
-   
-    console.log(data)
-  })
-  .catch((error) => {
+      const userProfile = {
+        email,
+        ...restFormData,
+        creationTime: result.user?.metadata?.creationTime,
+        lastSignInTime: result.user?.metadata?.lastSignInTime,
+      };
 
-      Swal.fire({
-        position: "top-end",
-        icon: "success",
-        title: "Your work has been saved",
-        showConfirmButton: false,
-        timer: 1500
+      return fetch('http://localhost:3000/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(userProfile)
       });
-    
-  });
- }
+    })
+    .then((res) => {
+      if (!res.ok) {
+        throw new Error('Failed to save user to backend');
+      }
+      return res.json();
+    })
+    .then((data) => {
+      console.log(data);
+      if (data.insertedId) {
+        Swal.fire({
+          position: "top-end",
+          icon: "success",
+          title: "Your work has been saved",
+          showConfirmButton: false,
+          timer: 1500
+        });
+      }
+    })
+    .catch((error) => {
+      console.error("Error during signup:", error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Oops...',
+        text: error.message || 'Something went wrong during signup.',
+      });
+    });
+};
+
+ 
    return (
      <div className="card bg-base-100 mx-auto w-full max-w-sm shrink-0 shadow-2xl">
        <div className="card-body">
